@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:practica3/transactions.dart';
+
+import 'Account.dart';
 
 void main() {
   runApp(const MyApp());
