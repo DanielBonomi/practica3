@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:practica3/transactions.dart';
+import 'package:practica3/BankService.dart';
+
 
 import 'Account.dart';
 
@@ -10,27 +13,11 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
@@ -41,15 +28,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -57,69 +35,239 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final BankService _service = BankService();
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    super.initState();
+    // init HERE
+  }
+
+  void _addAccount() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _service.createAccount(Random().nextDouble().toString().substring(2));
     });
+  }
+
+
+  void _showMessage(String message) {
+    final snackBar = SnackBar(
+      content: Text(message),
+      duration: Duration(seconds: 2),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void executeTransaction(
+    String? type,
+    String? targetAccount,
+    double amount,
+    String? sourceAccount,
+  ) {
+
+
+    if (! {'Transfer','Deposit','Withdraw'}.contains(type)) {
+      throw ArgumentError("Transaction in interface has invalid type");
+    }
+
+    try {
+      if (type == 'Transfer') {
+        _service.transfer(sourceAccount!, targetAccount!, amount);
+      } else if (type == 'Deposit') {
+        _service.deposit(targetAccount!, amount);
+      } else if (type == 'Withdraw') {
+        _service.withdrawal(targetAccount!, amount);
+      }
+    } catch (error) {
+      _showMessage(error.toString());
+    }
+
+
+
+    setState(() {
+
+    });
+  }
+
+  void _showTransactionDialog(
+    BuildContext context,
+    Map<String, Account> accounts,
+  ) {
+    String? transactionType;
+    double amount = 0.0;
+    String? targetAccount;
+    String? sourceAccount;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text('Select Transaction'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButton<String>(
+                    hint: Text('Select Transaction Type'),
+                    value: transactionType,
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        transactionType = newValue;
+                        sourceAccount = null;
+                      });
+                    },
+                    items:
+                        <String>[
+                          'Transfer',
+                          'Deposit',
+                          'Withdraw',
+                        ].map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                  ),
+                  TextField(
+                    decoration: InputDecoration(labelText: 'Amount'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      amount = double.tryParse(value) ?? 0.0;
+                    },
+                  ),
+                  if (transactionType == 'Transfer') ...[
+                    DropdownButton<String>(
+                      hint: Text('Select Source Account'),
+                      value: sourceAccount,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          sourceAccount = newValue;
+                        });
+                      },
+                      items:
+                      accounts.keys.map<DropdownMenuItem<String>>((
+                          String key,
+                          ) {
+                        return DropdownMenuItem<String>(
+                          value: key,
+                          child: Text(key),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                  DropdownButton<String>(
+                    hint: Text('Select Target Account'),
+                    value: targetAccount,
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        targetAccount = newValue;
+                      });
+                    },
+                    items:
+                        accounts.keys.map<DropdownMenuItem<String>>((
+                          String key,
+                        ) {
+                          return DropdownMenuItem<String>(
+                            value: key,
+                            child: Text(key),
+                          );
+                        }).toList(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // CALL TO MY METHOD
+                    executeTransaction(
+                      transactionType,
+                      targetAccount,
+                      amount,
+                      sourceAccount,
+                    );
+                  },
+                  child: Text('Submit'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Cancel'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
+      appBar: AppBar(title: Text('My ListView')),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+          children: [
+            Expanded(
+              child: ListView.builder(
+                itemCount: _service.accounts.length,
+                itemBuilder: (context, index) {
+                  String key = _service.accounts.keys.elementAt(index);
+                  String value = _service.accounts[key]!.balance.toString();
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    child: ListTile(
+                      title: Text(
+                        key,
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(value),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      // Action for the first button
+                      _addAccount();
+                    },
+                    child: Text('Add account'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      _showTransactionDialog(context, _service.accounts);
+                    },
+                    child: Text('Execute Transaction'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }

@@ -14,7 +14,7 @@ class BankService {
   }
   void deposit(String account, double amount) {
     if (! accounts.containsKey(account)) {
-      ArgumentError("Deposit attempted in non-existing account");
+      throw ArgumentError("Deposit attempted in non-existing account");
     }
     Transaction t = DepositTransaction(amount);
     t.apply(accounts[account]!);
@@ -22,7 +22,7 @@ class BankService {
 
   void withdrawal(String account, double amount) {
     if (! accounts.containsKey(account)) {
-      ArgumentError("Withdraw attempted in non-existing account");
+      throw ArgumentError("Withdraw attempted in non-existing account");
     }
     Transaction t = WithdrawalTransaction(amount);
     t.apply(accounts[account]!);
@@ -30,10 +30,10 @@ class BankService {
 
   void transfer(String from, String to, double amount) {
     if (! accounts.containsKey(from)) {
-      ArgumentError("Transfer attempted from non-existing account");
+      throw ArgumentError("Transfer attempted from non-existing account");
     }
     if (! accounts.containsKey(to)) {
-      ArgumentError("Transfer attempted to non-existing account");
+      throw ArgumentError("Transfer attempted to non-existing account");
     }
     Transaction t = TransferTransaction(amount, accounts[from]!);
     t.apply(accounts[to]!);

@@ -1,4 +1,4 @@
-import 'Account.dart';
+ import 'Account.dart';
 
 abstract class Transaction{
   String id;
@@ -20,6 +20,9 @@ class TransferTransaction extends Transaction {
 
   @override
   void apply(Account account) {
+    if (identical(account, from)) {
+      throw ArgumentError("Transfer Transaction can't have the same account as source and target");
+    }
     if (from.balance<amount) {
       throw StateError('Transfer Transaction called on Account without enough money');
     }
@@ -44,7 +47,6 @@ class WithdrawalTransaction extends Transaction {
     if (account.balance<amount) {
       throw StateError('Withdrawn attempted with insufficient balance');
     }
-    account.deposit(amount);
+    account.withdraw(amount);
   }
 }
-// ID CHECK->create 1000 ids and put them in a set, check set length
