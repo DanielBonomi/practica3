@@ -45,7 +45,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _addAccount() {
     setState(() {
-      _service.createAccount(Random().nextDouble().toString().substring(2));
+      bool repeat = true;
+      while (repeat) {
+        repeat = false;
+        try {
+          _service.createAccount(Random().nextDouble().toString().substring(2));
+        } on ArgumentError {
+          repeat = true; // si createAccount falla (porque ya hay una cuenta con el mismo nombre)
+        }
+      }
     });
   }
 
@@ -208,8 +216,10 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('My ListView')),
+      appBar: AppBar(title: Text('Accounts'), centerTitle: true),
       body: Center(
+        child: SizedBox(
+        width: 500,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -219,7 +229,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 itemBuilder: (context, index) {
                   String key = _service.accounts.keys.elementAt(index);
                   String value = _service.accounts[key]!.balance.toString();
-                  return Card(
+                  value= "Balance: $value";
+                                  return Card(
                     margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     child: ListTile(
                       title: Text(
@@ -267,6 +278,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
